@@ -1,0 +1,422 @@
+---
+title: "Tennis Players"
+author: "Zeynep Aslan"
+output: 
+  github_document:
+    toc: true
+---
+
+<!-- IMPORTANT: To be able to reproduce this report, you need the tennis_players.csv data. Use data.scraping.R file to generate this data before trying to reproduce this report
+-->
+
+# World's Top 100 Male Tennis Players
+
+This report analyses the biographic information and statistics of world's top 100 male tennis players. Rankings are based on the scoring criteria determined by the **[Association of Tennis Professionals (ATP)](https://www.atptour.com/en/rankings/singles)** for *singles*. 
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+
+# Load required packages
+library(tidyverse)
+library(tidymodels)
+library(here)
+library(patchwork)
+library(lubridate)
+library(kableExtra)
+library(scales)
+
+# Set a global theme for the plots
+theme_set(theme_minimal())
+
+# Read data
+tennis_players <- read_csv(here("tennis_players.csv"), show_col_types = FALSE)
+```
+
+
+## 1. Nationality of the players 
+
+First, let's check the nationalities of the top 100 male players to see how many players there are from each country. Figure 1A shows that the USA has the most players, followed by Spain and France. However, interestingly, when we look at the top 10 players in the world, we see that none of them are from the USA. Instead, Russia has the most players in the top 10 list, as no country other than Russia has more than 1 player on the list. 
+
+
+```{r nationality-plots}
+
+# Draw a plot showing the number of players from each country
+nationality <- tennis_players %>%
+  group_by(nationality) %>%
+  summarise(total_players = n()) %>%
+  ggplot(mapping = aes(x = reorder(nationality, total_players), y = total_players)) +
+  geom_col(fill = "maroon", color = "black") +
+  labs(x = "Nationality",
+       y = "Number of players") + 
+  coord_flip()
+
+# Draw the same plot just for the top 10 players
+top10_nationality <- tennis_players %>%
+  slice_head(n = 10) %>%
+  group_by(nationality) %>%
+  summarise(total_players = n()) %>%
+  ggplot(mapping = aes(x = reorder(nationality, total_players), y = total_players)) +
+  geom_col(fill = "palevioletred") +
+  labs(x = "Nationality",
+       y = "Number of players") + 
+  scale_y_continuous(breaks = c(0, 1, 2)) + 
+  guides(fill = "none") + 
+  coord_flip()
+
+# Display the figures side by side for better comparison
+nationality_plots <- nationality + top10_nationality
+
+nationality_plots + plot_annotation(
+  title = 'Figure 1: Nationalities of top 100 male tennis players',
+  caption = 'Note: (A) displays the number of players from each country, (B) displays the same information for the top 10 players.', 
+  tag_levels = 'A') 
+
+
+```
+
+
+## 2. Age of the players 
+
+Next, we will look at the age information of the top 100 male tennis players. 
+
+```{r age-descriptive, out.width= "300%"}
+
+# Calculate the age of the players 
+tennis_players <- tennis_players %>%
+  mutate(age = year(today()) - year(birthday))
+
+age_descriptive <- tennis_players %>%
+  summarise(Mean = mean(age),
+            Min = min(age),
+            Max = max(age))
+
+kable(age_descriptive,
+      caption = "Table 1: Age descriptives")
+```
+
+Table 1 shows that the mean age of the players is `r age_descriptive$Mean` and the range is `r age_descriptive$Min` to `r age_descriptive$Max`. Considering that these are top 100 players of the world and therefore, are pretty advanced in their careers, it is not surprising that the mean age is not very low. By the same logic, we would expect older players to have more titles. Figure 2 below demonstrates this relationship. Specifically, in Figure 2A, we see a slightly positive relationship between age of the players and number of titles earned, confirming our intuition. However, this relationship is heavily influenced by the data points of four players (*Roger Federer, Rafael Nadal, Novak Djokovic and Andy Murray*), who have significantly more titles than players their own age. Thus, in Figure 2B, we visualized the same relationship by removing these extreme cases. There is a positive relationship between age and number of titles earned even without these influential data points. 
+
+
+```{r age-plots, message = FALSE}
+
+# Draw a scatter plot - titles and age
+age_titles <- tennis_players %>%
+  ggplot(mapping = aes(x = age, y = titles)) +
+  geom_jitter(alpha = 0.5) + 
+  geom_smooth(method = "lm", color = "mediumpurple1") +
+  geom_text(
+    data = tennis_players %>%
+      filter(titles > 45),
+      aes(label = player, color = player), nudge_y = 10, show.legend = FALSE,
+          vjust = "inward", hjust = "inward") + 
+  labs(x = "Age of the player",
+       y = "Number of titles earned")
+
+# Redraw the graph filtering out the extreme values
+age_titles_filtered <- tennis_players %>%
+  filter(titles < 45) %>%
+  ggplot(mapping = aes(x = age, y = titles)) +
+  geom_jitter(alpha = 0.5) + 
+  geom_smooth(method = "lm", color = "mediumpurple1") + 
+  labs(x = "Age of the player",
+       y = "Number of titles earned")
+
+# Display the figures side by side for better comparison
+age_plots <- age_titles + age_titles_filtered
+
+age_plots + plot_annotation(
+  title = 'Figure 2: The relationship between age and number of titles earned',
+  caption = 'Note: (A) displays the relationship for all players, (B) displays the same information without the extreme values.', 
+  tag_levels = 'A') 
+
+```
+
+## 3. Prize money earned
+
+Figure 3 demonstrates the average prize money earned by the top 10 players in a year. As can be seen from the graph **Novak Djokovic** earns by far the most money in a season. His closest follower, **Rafael Nadal** earns approximately $2 million less than him. 
+
+```{r prize-money}
+
+# Calculate the number of titles and prize money earned per year
+tennis_players <- tennis_players %>%
+  mutate(years_pro = 2022-turned_pro,
+         titles_per_year = titles/years_pro,
+         prize_per_year = prize_money/years_pro)
+
+# Plot the prize money earned by the top 10 players in a year
+prizes_year <- tennis_players %>%
+  slice_head(n = 10) %>%
+  mutate(player = fct_reorder(player, ranking, .desc = TRUE),
+         novak = if_else(player == "Novak Djokovic", TRUE, FALSE)) %>%
+  ggplot(mapping = aes(x = player, y = prize_per_year, fill = novak)) +
+  geom_col(show.legend = FALSE) + 
+  scale_fill_manual(values = c("azure4", "orchid4")) + 
+  scale_y_continuous(labels = dollar_format()) + 
+  labs(title = "Figure 3: Average prize money earned by the top 10 male players \nin a year",
+       x = "Prize money",
+       y = "Players") + 
+  coord_flip()
+
+# Print the graph
+prizes_year
+```
+
+
+## 4. Heights of the players
+
+Figure 4 displays the distribution of the heights of the top 100 male tennis players. Looking at the distribution, it is fair to conclude that (successful) tennis players tend to be tall. The mean height of the top 100 players is `r mean(tennis_players$height)`cm, which is shown with the dotted line on the graph below. 
+
+
+```{r height}
+
+# Plot a histogram showing the height distribution of the players
+height_plot <- tennis_players %>%
+  ggplot(mapping = aes(x = height)) +
+  geom_histogram(color = "blue4", fill = "lightskyblue2", binwidth = 5) +
+  # Mark the average height
+  geom_vline(aes(xintercept = mean(height)), size = 1, linetype = "dashed", color = "maroon") +
+  labs(x = "Heights of the players (in cm)",
+       y = "Number of players",
+       title = "Figure 4: Distribution of the heights of the top 100 players",
+       caption = "Note: Dotted line represents the average height.") + 
+  theme(
+    plot.title = element_text(hjust = 0),
+    plot.caption = element_text(hjust = 0)
+  )
+
+# Print the graph
+height_plot
+```
+
+
+## 5. Handedness of the players
+
+```{r handedness-table}
+
+# Make pie chart showing the handedness information of the players
+handedness_table <- tennis_players %>%
+  group_by(handedness) %>%
+  summarise(total_players = n(),
+            percent_players = total_players/100)
+
+
+```
+
+
+Figure 5 displays the handedness information of the top 100 tennis players. Like most people, the majority of tennis players are right-handed.  Specifically, as pie chart also demonstrates, `r handedness_table$total_players[2]`% of the top 100 tennis players are right-handed. 
+
+```{r handedness-plot}
+
+# Make pie chart showing the handedness information of the players
+handedness_chart <- handedness_table %>%
+  ggplot(aes(x = "", y = total_players, fill = handedness)) +
+  geom_bar(stat = "identity", width = 1) +
+  coord_polar("y", start = 0) +
+  scale_fill_brewer(palette = "Pastel1") + 
+  labs(fill = "Handedness",
+       x = NULL, 
+       y = NULL,
+       title = "Figure 5: Pie chart of handedness information of top 100 players")
+
+# Print the graph 
+handedness_chart
+
+```
+
+## 6. Statistics
+
+### Aces
+
+Figure 6 investigates if there is a relationship between players' heights and handedness and the approximate number of [aces](https://tenniscompanion.org/ace/) they score in a season. As can be seen in Figure 6A, there seems to be a positive relationship between heights of the players and the number of aces they score in a year. Handedness, on the other hand, does not seem to affect the effectiveness of the services as both right and left-handed players seem to score similar number of aces in a year.   
+
+```{r aces, message=FALSE}
+
+# Draw a scatter plot - height and number of aces
+ace_height <- tennis_players %>%
+  mutate(ace_year = Aces/years_pro) %>% 
+  ggplot(mapping = aes(x = height, y = ace_year)) +
+  geom_jitter() + 
+  geom_smooth(method = "lm") +
+  labs(x = "Height of the player (in cm)",
+       y = "Number of aces scored")
+
+# Draw a bar chart - handedness and number of aces
+ace_handedness <- tennis_players %>%
+  mutate(ace_year = Aces/years_pro) %>% 
+  group_by(handedness) %>%
+  summarize(mean_aces = mean(ace_year)) %>%
+  ggplot(mapping = aes(x = handedness, y = mean_aces, fill = handedness)) +
+  geom_col(aes(fill = handedness), show.legend = FALSE) +
+  scale_fill_brewer(palette = "Set2") + 
+  labs(x = "Handedness",
+       y = "Average number of aces")
+
+# Display the figures side by side for better comparison
+ace_plots <- ace_height + ace_handedness
+
+ace_plots + plot_annotation(
+  title = 'Figure 6: The relationship between heights and handedness of players and the \naverage number of aces they score in a season', 
+  tag_levels = 'A') 
+```
+
+Figure 7, on the other hand, demonstrates the relationship between number of aces scored and number of [double faults](https://www.rookieroad.com/tennis/what-is-double-fault/) committed by a player. This relationship is interesting to look at because in order to score an ace, players tend to go for riskier services which increases their chances to commit a double fault. Figure 7 indeed shows this relationship; as the number of aces increases, number of double faults also increases. There is one significant outlier in the data though, i.e., John Isner - he scores significantly more aces than he commits double faults compared to the other top 100 players. 
+
+
+```{r ace-doublefault, message=FALSE}
+
+# Calculate the number of aces and double faults per year
+tennis_players <- tennis_players %>%
+  mutate(ace_year = Aces/years_pro,
+         fault_year = `Double Faults`/years_pro)
+
+# Draw a scatter plot - aces and double faults
+ace_fault <- tennis_players%>% 
+  ggplot(mapping = aes(x = fault_year, y = ace_year)) +
+  geom_jitter() + 
+  geom_smooth(method = "lm", color = "forestgreen") +
+  geom_label(
+    data = tennis_players %>%
+      filter(ace_year > 750),
+      aes(label = player, color = "player"), nudge_y = 1, nudge_x = 5, show.legend = FALSE,
+          vjust = "inward", hjust = "inward") + 
+  labs(x = "Number of double faults committed",
+       y = "Number of aces scored",
+       title = "Figure 7: The relationship between number of aces scored and number of double \nfaults committed")
+
+# Print the graph
+ace_fault
+```
+
+
+### Service and Return Points Won
+
+Finally, Figure 8 shows the relationship between percentage of service points and return points won for the top 10 players. From the graph, we see a consistent pattern -  It seems that all 10 players are more successful in winning the games that they serve, suggesting that starting the game by serving gives the players an advantage.  
+
+```{r service-return}
+
+# Draw a graph showing percentage of service and return points won by the top 10 players
+service_return <- tennis_players %>%
+  slice_head(n=10) %>%
+  select(player, `Total Service Points Won`, `Return Points Won`) %>%
+  pivot_longer(cols = 2:3, names_to = 'Game', values_to = 'Percentage' ) %>%
+  mutate(Game = case_when(Game == "Total Service Points Won" ~ "Service Points Won",
+                          TRUE ~ "Return Points Won")) %>%
+  mutate(Game = fct_rev(Game)) %>%
+  ggplot(mapping = aes(x = Game, y = Percentage, fill = Game)) + 
+  geom_col() +
+  facet_wrap(vars(player)) + 
+  scale_y_continuous(labels = percent) +
+  scale_fill_brewer(palette = "Set1") + 
+  labs(x = NULL,
+       fill = " ", 
+       title = "Figure 8: Percentage of service and return points won for the top 10 players") + 
+  theme(axis.text.x = element_blank(),
+        legend.position = "bottom")
+
+# Print the graph 
+service_return
+```
+
+## 7. Models
+
+Lastly, we estimated two models to predict the titles earned by the players in a year as a function of total aces they scored in a year and total service points won. 
+
+```{r data-splitting, message=FALSE}
+
+# Split the data into training and testing sets
+set.seed(120)
+
+tennis_split <- initial_split(data = tennis_players, prop = 3 / 4)
+tennis_train <- training(tennis_split)
+tennis_test <- testing(tennis_split)
+
+tennis_folds <- vfold_cv(data = tennis_train, v = 10)
+
+```
+
+### Basic Linear Regression Model
+
+``` {r linear-model, message = FALSE}
+
+# Specify the model
+lnr_mod <-linear_reg() %>%
+  set_engine("lm") %>%
+  set_mode("regression")
+
+# Specify the recipe
+lnr_rec <- recipe(titles_per_year ~  
+                    ace_year + `Total Service Points Won`, 
+                  data = tennis_train) %>%
+    # remove the missing values in the outcome
+    step_naomit(all_outcomes(), skip = TRUE) 
+
+
+# Build a workflow
+lnr_wf <- workflow() %>%
+  add_recipe(lnr_rec) %>%
+  add_model(lnr_mod)
+
+# Estimate the model
+tennis_lnr <- lnr_wf %>%
+  fit_resamples(resamples = tennis_folds) %>%
+  collect_metrics()
+ 
+
+#Build a table to display the output
+kable(tennis_lnr[1, 1:5], align = 'c',
+      col.names = c("Metric", "Estimator", "Mean", "n", "Standard Error"),
+      caption = "Table 2: Basic Linear Regression Model (10 folds)", 
+      digits = 2)
+```
+
+
+Table 2 shows the output of the basic linear regression model. The basic linear regression model estimated using 10-folds cross-validation predicted the number of titles earned with a RMSE of `r formatC(tennis_lnr$mean[1], digits = 2)`, meaning that the model's predictions were wrong by approximately `r formatC(tennis_lnr$mean[1], digits = 2)` titles.  
+
+### Decision Tree Model
+
+``` {r tree-model, message = FALSE}
+
+# Specify the model
+tree_mod <- decision_tree() %>%
+  set_engine("rpart") %>%
+  set_mode("regression")
+
+# Build a workflow
+tree_wf <- lnr_wf %>%
+  update_model(tree_mod)
+
+# Estimate the model
+tennis_tree <- tree_wf %>%
+  fit_resamples(resamples = tennis_folds) %>%
+  collect_metrics()
+ 
+
+#Build a table to display the output
+kable(tennis_tree[1, 1:5], align = 'c',
+      col.names = c("Metric", "Estimator", "Mean", "n", "Standard Error"),
+      caption = "Table 3: Decision Tree Model (10 folds)", 
+      digits = 2)
+```
+
+Table 3 shows the output of the decision tree model. The decision tree model estimated using 10-folds cross-validation predicted the number of titles earned with a RMSE of `r formatC(tennis_tree$mean[1], digits = 2)`, meaning that the model's predictions were wrong by approximately `r formatC(tennis_tree$mean[1], digits = 2)` titles.  
+
+As can be seen from the Table 2 and Table 3 above, decision tree model performs slightly better than the linear regression model. Therefore, decision tree model will be used to predict the held-out test set of data using the full training set
+
+### Best Model
+
+```{r best-model, message = FALSE}
+  
+tree_model <- tree_wf %>%  
+  fit(data = tennis_train) %>%
+  predict(new_data = tennis_test) %>%
+  mutate(true_titles= tennis_test$titles_per_year) %>%
+  rmse(truth = true_titles, estimate = .pred)
+
+kable(tree_model, align = 'c',
+      col.names = c("Metric", "Estimator", "Estimate"),
+      caption = "Table 4: Decision Tree Model",
+      digits = 2)
+```
+
+
+The decision tree model estimated using the full training set predicted the titles earned per year in the held-out test set with a RMSE of `r formatC(tree_model$.estimate, digits = 2)` titles, which is not so great considering that the range of titles earned is between 0 to 4. However, we should also keep in mind that **the amount of data is low and therefore, might not be enough to accurately estimate these models.**
