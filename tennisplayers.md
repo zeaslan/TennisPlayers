@@ -1,23 +1,21 @@
-Part 2: More Complicated Data Collection
+Tennis Players
 ================
 Zeynep Aslan
 
--   [World’s Top 100 Male Tennis
-    Players](#worlds-top-100-male-tennis-players)
-    -   [1. Nationality of the players](#1-nationality-of-the-players)
-    -   [2. Age of the players](#2-age-of-the-players)
-    -   [3. Prize money earned](#3-prize-money-earned)
-    -   [4. Heights of the players](#4-heights-of-the-players)
-    -   [5. Handedness of the players](#5-handedness-of-the-players)
-    -   [6. Statistics](#6-statistics)
-        -   [Aces](#aces)
-        -   [Service and Return Points
-            Won](#service-and-return-points-won)
-    -   [7. Models](#7-models)
-        -   [Basic Linear Regression
-            Model](#basic-linear-regression-model)
-        -   [Decision Tree Model](#decision-tree-model)
-        -   [Best Model](#best-model)
+- [World’s Top 100 Male Tennis
+  Players](#worlds-top-100-male-tennis-players)
+  - [1. Nationality of the players](#1-nationality-of-the-players)
+  - [2. Age of the players](#2-age-of-the-players)
+  - [3. Prize money earned](#3-prize-money-earned)
+  - [4. Heights of the players](#4-heights-of-the-players)
+  - [5. Handedness of the players](#5-handedness-of-the-players)
+  - [6. Statistics](#6-statistics)
+    - [Aces](#aces)
+    - [Service and Return Points Won](#service-and-return-points-won)
+  - [7. Models](#7-models)
+    - [Basic Linear Regression Model](#basic-linear-regression-model)
+    - [Decision Tree Model](#decision-tree-model)
+    - [Best Model](#best-model)
 
 <!-- IMPORTANT: To be able to reproduce this report, you need the tennis_players.csv data. Use data.scraping.R file to generate this data before trying to reproduce this report
 -->
@@ -39,7 +37,7 @@ that none of them are from the USA. Instead, Russia has the most players
 in the top 10 list, as no country other than Russia has more than 1
 player on the list.
 
-![](part2_tennisplayers_files/figure-gfm/nationality-plots-1.png)<!-- -->
+![](tennisplayers_files/figure-gfm/nationality-plots-1.png)<!-- -->
 
 ## 2. Age of the players
 
@@ -66,20 +64,20 @@ Max
 <tbody>
 <tr>
 <td style="text-align:right;">
-27.97
+29.97
 </td>
 <td style="text-align:right;">
-19
+21
 </td>
 <td style="text-align:right;">
-41
+43
 </td>
 </tr>
 </tbody>
 </table>
 
-Table 1 shows that the mean age of the players is 27.97 and the range is
-19 to 41. Considering that these are top 100 players of the world and
+Table 1 shows that the mean age of the players is 29.97 and the range is
+21 to 43. Considering that these are top 100 players of the world and
 therefore, are pretty advanced in their careers, it is not surprising
 that the mean age is not very low. By the same logic, we would expect
 older players to have more titles. Figure 2 below demonstrates this
@@ -93,16 +91,16 @@ same relationship by removing these extreme cases. There is a positive
 relationship between age and number of titles earned even without these
 influential data points.
 
-![](part2_tennisplayers_files/figure-gfm/age-plots-1.png)<!-- -->
+![](tennisplayers_files/figure-gfm/age-plots-1.png)<!-- -->
 
 ## 3. Prize money earned
 
 Figure 3 demonstrates the average prize money earned by the top 10
 players in a year. As can be seen from the graph **Novak Djokovic**
 earns by far the most money in a season. His closest follower, **Rafael
-Nadal** earns approximately $2 million dollars less than him.
+Nadal** earns approximately \$2 million less than him.
 
-![](part2_tennisplayers_files/figure-gfm/prize-money-1.png)<!-- -->
+![](tennisplayers_files/figure-gfm/prize-money-1.png)<!-- -->
 
 ## 4. Heights of the players
 
@@ -112,7 +110,13 @@ tennis players. Looking at the distribution, it is fair to conclude that
 100 players is 187.14cm, which is shown with the dotted line on the
 graph below.
 
-![](part2_tennisplayers_files/figure-gfm/height-1.png)<!-- -->
+    ## Warning: Using `size` aesthetic for lines was deprecated in ggplot2 3.4.0.
+    ## ℹ Please use `linewidth` instead.
+    ## This warning is displayed once every 8 hours.
+    ## Call `lifecycle::last_lifecycle_warnings()` to see where this warning was
+    ## generated.
+
+![](tennisplayers_files/figure-gfm/height-1.png)<!-- -->
 
 ## 5. Handedness of the players
 
@@ -121,7 +125,7 @@ players. Like most people, the majority of tennis players are
 right-handed. Specifically, as pie chart also demonstrates, 75% of the
 top 100 tennis players are right-handed.
 
-![](part2_tennisplayers_files/figure-gfm/handedness-plot-1.png)<!-- -->
+![](tennisplayers_files/figure-gfm/handedness-plot-1.png)<!-- -->
 
 ## 6. Statistics
 
@@ -136,7 +140,7 @@ Handedness, on the other hand, does not seem to affect the effectiveness
 of the services as both right and left-handed players seem to score
 similar number of aces in a year.
 
-![](part2_tennisplayers_files/figure-gfm/aces-1.png)<!-- -->
+![](tennisplayers_files/figure-gfm/aces-1.png)<!-- -->
 
 Figure 7, on the other hand, demonstrates the relationship between
 number of aces scored and number of [double
@@ -149,7 +153,7 @@ number of double faults also increases. There is one significant outlier
 in the data though, i.e., John Isner - he scores significantly more aces
 than he commits double faults compared to the other top 100 players.
 
-![](part2_tennisplayers_files/figure-gfm/ace-doublefault-1.png)<!-- -->
+![](tennisplayers_files/figure-gfm/ace-doublefault-1.png)<!-- -->
 
 ### Service and Return Points Won
 
@@ -159,7 +163,7 @@ see a consistent pattern - It seems that all 10 players are more
 successful in winning the games that they serve, suggesting that
 starting the game by serving gives the players an advantage.
 
-![](part2_tennisplayers_files/figure-gfm/service-return-1.png)<!-- -->
+![](tennisplayers_files/figure-gfm/service-return-1.png)<!-- -->
 
 ## 7. Models
 
